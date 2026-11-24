@@ -22,7 +22,9 @@ function applyTheme() {
   const th = THEMES.find(x => x[0] === t.acc) || THEMES[0];
   const root = document.documentElement;
   root.style.setProperty('--acc', th[2]);
-  root.style.colorScheme = t.mode === 'light' || t.mode === 'dark' ? t.mode : '';
+  // 라이트/다크를 고르면 data-theme로 색을 강제하고, 시스템이면 기기 설정(prefers-color-scheme)을 따른다
+  if (t.mode === 'light' || t.mode === 'dark') root.dataset.theme = t.mode;
+  else delete root.dataset.theme;
   const m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', th[2]);
 }
 

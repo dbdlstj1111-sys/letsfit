@@ -3,8 +3,9 @@
    PICTURE: 지금 하는 세트 표 자체가 화면의 중심
    COLOUR/TYPE: 분필 흰색·철 검정·경기용 원판 빨강 / Inter(숫자·라틴) + Noto Sans KR(한글), 숫자는 고정폭
    LAYOUT: 한 손 조작, 하단 탭, 44px 터치 영역 */
-:root{--ff:"Inter","Noto Sans KR",-apple-system,system-ui,sans-serif;color-scheme:light dark;--bg:light-dark(#f3f2ee,#111214);--card:light-dark(#fff,#1b1c1f);--ink:light-dark(#151515,#efeeea);--mute:light-dark(#6b6a66,#9b9a95);--line:light-dark(#e2e0d9,#2b2c30);--acc:#e0322f;--soft:light-dark(color-mix(in srgb,var(--acc) 12%,#fff),color-mix(in srgb,var(--acc) 26%,#111));--ok:light-dark(#1d7a4c,#4cc68b);--okbg:light-dark(#e5f4ec,#173226);--in:light-dark(#f6f5f1,#232428)}
-:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+:root{--ff:"Inter","Noto Sans KR",-apple-system,system-ui,sans-serif;--acc:#e0322f;color-scheme:light;--bg:#f3f2ee;--card:#fff;--ink:#151515;--mute:#6b6a66;--line:#e2e0d9;--soft:color-mix(in srgb,var(--acc) 12%,#fff);--ok:#1d7a4c;--okbg:#e5f4ec;--in:#f6f5f1}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--bg:#111214;--card:#1b1c1f;--ink:#efeeea;--mute:#9b9a95;--line:#2b2c30;--soft:color-mix(in srgb,var(--acc) 26%,#111);--ok:#4cc68b;--okbg:#173226;--in:#232428}}
+:root[data-theme=dark]{color-scheme:dark;--bg:#111214;--card:#1b1c1f;--ink:#efeeea;--mute:#9b9a95;--line:#2b2c30;--soft:color-mix(in srgb,var(--acc) 26%,#111);--ok:#4cc68b;--okbg:#173226;--in:#232428}
 *{box-sizing:border-box;min-width:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--ff);font-variant-numeric:tabular-nums;letter-spacing:-.01em;overflow-x:clip;-webkit-tap-highlight-color:transparent}
 main{max-width:640px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 150px)}

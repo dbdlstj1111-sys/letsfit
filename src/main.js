@@ -55,6 +55,12 @@ function newWorkout(items) {
   S.workouts[w.id] = w; V.editId = null; touchW(w); V.view = 'rec'; render(); return w;
 }
 const cloneItems = w => w.items.map(it => ({ex: it.ex, rest: it.rest || null, sets: it.sets.map(s => ({t: s.t, w: s.w, r: s.r, rpe: null, done: false}))}));
+const isBlank = s => (s.w === '' || s.w == null) && (s.r === '' || s.r == null);
+// before 이전 세트 중 무게·횟수가 적힌 가장 가까운 세트 (웜업은 다른 세트가 없을 때만)
+const lastFilled = (sets, before) => {
+  const prev = sets.slice(0, before).reverse().filter(s => !isBlank(s));
+  return prev.find(s => s.t !== 'W') || prev[0] || null;
+};
 const tombstone = id => { S.workouts[id] = {id, deleted: true, updatedAt: Date.now()}; mark(id); };
 function doImport(txt) { const r = importBackup(txt); if (r.ok) render(); toast(r.msg); }
 
@@ -94,12 +100,15 @@ const A = {
     const row = el.closest('.srow');
     if (s.done && !n2(s.r)) { const p = row.querySelector('[data-f=r]').placeholder; if (n2(p)) s.r = n2(p); }
     if (s.done && s.w === '') { const p = row.querySelector('[data-f=w]').placeholder; if (n2(p)) s.w = n2(p); }
+    // 세트를 완료하면 바로 다음 빈 세트에 같은 무게·횟수를 채운다 (웜업 제외)
+    const next = it.sets[ctx(el).si + 1];
+    if (s.done && s.t !== 'W' && next && !next.done && isBlank(next)) { next.w = s.w; next.r = s.r; }
     touchW(w);
     if (s.done && !w.end) startRest(+it.rest || S.meta.settings.rest, w, s);
     render();
   },
   usePrev: el => { const {w, si, it, s} = ctx(el); const p = (lastSets(it.ex, w.start, w.id) || [])[si]; if (!p) return; s.w = p.w; s.r = p.r; touchW(w); render(); },
-  addSet: el => { const {w, it} = ctx(el); const base = [...it.sets].reverse().find(s => s.t === 'N') || it.sets[it.sets.length - 1] || {w: '', r: ''}; it.sets.push({t: 'N', w: base.w, r: base.r, rpe: null, done: false}); touchW(w); render(); },
+  addSet: el => { const {w, it} = ctx(el); const base = lastFilled(it.sets, it.sets.length) || {w: '', r: ''}; it.sets.push({t: 'N', w: base.w, r: base.r, rpe: null, done: false}); touchW(w); render(); },
   addDrop: el => { const {w, it} = ctx(el); const base = it.sets[it.sets.length - 1]; if (!base) return toast('먼저 세트를 추가하세요'); const nw = n2(base.w) ? Math.max(0, Math.round(n2(base.w) * .8 / 2.5) * 2.5) : ''; it.sets.push({t: 'D', w: nw, r: base.r, rpe: null, done: false}); touchW(w); render(); },
   rpe: el => { menuCtx = ctx(el); const cv = menuCtx.s.rpe; openSheet(`<h3>세트 강도 (RPE)</h3><p class="hint">이 세트를 마쳤을 때 몇 회를 더 할 수 있었는지로 고르세요.</p><div class="opts">${RPES.map(([v, t]) => `<button class="opt${cv === v ? ' sel' : ''}" data-act="rpeSet" data-v="${v}"><b>${v}</b><small>${t}</small></button>`).join('')}</div><div class="row" style="margin-top:12px"><button class="btn" data-act="rpeSet" data-v="">지우기</button><button class="btn" data-act="close">닫기</button></div>`); },
   rpeSet: el => { const {w, s} = menuCtx; s.rpe = el.dataset.v ? +el.dataset.v : null; touchW(w); closeSheet(); render(); },

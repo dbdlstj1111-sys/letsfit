@@ -53,7 +53,8 @@ export async function flush() {
 /* ---------- 조회 ---------- */
 export const live = () => Object.values(S.workouts).filter(w => w && !w.deleted && Array.isArray(w.items));
 export const finished = () => live().filter(w => w.end).sort((a, b) => b.start - a.start);
-export const active = () => live().filter(w => !w.end).sort((a, b) => b.start - a.start)[0];
+// 진행 중이거나 준비 중(planned, start 없음)인 운동
+export const active = () => live().filter(w => !w.end).sort((a, b) => (b.start || b.updatedAt || 0) - (a.start || a.updatedAt || 0))[0];
 export const cur = () => (V.editId && S.workouts[V.editId] && !S.workouts[V.editId].deleted) ? S.workouts[V.editId] : active();
 export const exById = id => S.meta.custom.find(e => e.id === id) || BASE.find(e => e.id === id) || {id, name: '(삭제된 운동)', part: '기타', eq: 'bb'};
 export const allEx = () => [...BASE, ...S.meta.custom];
@@ -69,6 +70,7 @@ export const elapsed = w => (w.end || w.pausedAt || Date.now()) - w.start - (w.p
 export const avgRest = it => { const r = it.sets.map(s => +s.restS).filter(x => x > 0); return r.length ? r.reduce((a, b) => a + b, 0) / r.length : 0; };
 
 export function lastSets(exId, before = Infinity, skip = null) {
+  if (before == null) before = Infinity; // 준비 중(start 없음)이면 모든 지난 기록 대상
   for (const w of finished()) { if (w.id === skip || w.start >= before) continue; const it = w.items.find(i => i.ex === exId); if (it && it.sets.length) return it.sets; }
   return null;
 }

@@ -179,3 +179,6 @@ nav button.on{color:var(--acc)}
 #toast.act{pointer-events:auto;display:flex;align-items:center;gap:12px;padding:6px 6px 6px 16px}
 #toast button{min-height:36px;padding:0 12px;border-radius:9px;background:var(--acc);color:#fff;font-weight:700;font-size:14px}
 @media (prefers-reduced-motion:reduce){.srow.snap{transition:none}}
+/* 운동 준비 화면: 완료·강도 버튼은 시작 후에만 */
+.planning .chk,.planning .rpe{visibility:hidden}
+.pick em{margin-left:auto}

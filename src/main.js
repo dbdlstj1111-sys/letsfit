@@ -11,7 +11,7 @@ import { initSwipe } from './swipe.js';
 import { P, openPicker, filterPick, routineEditor } from './sheets.js';
 import { shareBackup, copyBackup, importBackup } from './backup.js';
 import { paintSave } from './views/common.js';
-import { vRec } from './views/record.js';
+import { vRec, planLoadSheet } from './views/record.js';
 import { vRt } from './views/routines.js';
 import { vCal } from './views/calendar.js';
 import { vAn } from './views/analysis.js';
@@ -53,10 +53,19 @@ function ctx(el) {
   return {w, ii, si, it, s: it && si >= 0 ? it.sets[si] : null};
 }
 let menuCtx = null;
-function newWorkout(items) {
-  const w = {id: uid('w-'), date: today(), start: Date.now(), end: null, items, intensity: null, note: '', updatedAt: Date.now()};
-  S.workouts[w.id] = w; V.editId = null; touchW(w); V.view = 'rec'; render(); return w;
+// 운동을 바로 시작하지 않고 준비 화면(planned)에 담는다. 진행 중인 운동이 있으면 거기에 추가.
+function toPlan(items) {
+  let w = active();
+  if (w && !w.planned) { w.items.push(...items); touchW(w); toast('진행 중인 운동에 추가했어요'); }
+  else if (w) { w.items.push(...items); touchW(w); }
+  else {
+    w = {id: uid('w-'), date: today(), start: null, planned: true, end: null, items, intensity: null, note: '', updatedAt: Date.now()};
+    S.workouts[w.id] = w; touchW(w);
+  }
+  V.editId = null; V.view = 'rec'; render(); window.scrollTo(0, 0);
+  return w;
 }
+const routineItems = r => r.items.map(i => ({ex: i.ex, rest: null, sets: seedSets(i.ex, +i.sets || 3, i.r, i.w)}));
 const cloneItems = w => w.items.map(it => ({ex: it.ex, rest: it.rest || null, sets: it.sets.map(s => ({t: s.t, w: s.w, r: s.r, rpe: null, done: false}))}));
 const isBlank = s => (s.w === '' || s.w == null) && (s.r === '' || s.r == null);
 // before 이전 세트 중 무게·횟수가 적힌 가장 가까운 세트 (웜업은 다른 세트가 없을 때만)
@@ -82,19 +91,17 @@ const A = {
   close: closeSheet,
   retry: () => flush(),
   confirmOk: () => { const f = takeConfirm(); closeSheet(); f && f(); },
-  newEmpty: () => { newWorkout([]); A.addEx(); },
-  startRt: el => {
-    const r = S.meta.routines.find(x => x.id === el.dataset.id); if (!r) return;
-    const items = r.items.map(i => ({ex: i.ex, rest: null, sets: seedSets(i.ex, +i.sets || 3, i.r, i.w)}));
-    const a = active();
-    if (a) { a.items.push(...items); touchW(a); V.editId = null; V.view = 'rec'; render(); toast('진행 중인 운동에 추가했어요'); }
-    else newWorkout(items);
-  },
-  again: el => {
-    const src = S.workouts[el.dataset.id]; if (!src || !src.items) return;
-    const a = active();
-    if (a) { a.items.push(...cloneItems(src)); touchW(a); V.editId = null; V.view = 'rec'; render(); toast('진행 중인 운동에 추가했어요'); }
-    else newWorkout(cloneItems(src));
+  newEmpty: () => toPlan([]),
+  startRt: el => { const r = S.meta.routines.find(x => x.id === el.dataset.id); if (r) toPlan(routineItems(r)); },
+  again: el => { const src = S.workouts[el.dataset.id]; if (src && src.items) toPlan(cloneItems(src)); },
+  planLoad: () => openSheet(planLoadSheet()),
+  planLoadRt: el => { const r = S.meta.routines.find(x => x.id === el.dataset.id); if (!r) return; closeSheet(); toPlan(routineItems(r)); toast(r.name + ' 루틴을 불러왔어요'); },
+  planLoadW: el => { const src = S.workouts[el.dataset.id]; if (!src || !src.items) return; closeSheet(); toPlan(cloneItems(src)); toast('지난 운동을 불러왔어요'); },
+  startPlan: () => {
+    const w = cur(); if (!w || !w.planned) return;
+    if (!w.items.length) return toast('운동을 하나 이상 추가하세요');
+    delete w.planned; w.start = Date.now(); w.date = today(); touchW(w);
+    render(); window.scrollTo(0, 0); toast('운동을 시작했어요');
   },
   addEx: () => openPicker(id => { const w = cur(); w.items.push({ex: id, rest: null, sets: seedSets(id)}); touchW(w); closeSheet(); render(); setTimeout(() => { const cs = document.querySelectorAll('.ex'); cs[cs.length - 1]?.scrollIntoView({block: 'center'}); }, 30); }),
   pfilter: el => { P.part = el.dataset.p; document.querySelectorAll('.chips .chip').forEach(c => c.classList.toggle('sel', c === el)); filterPick(); },
@@ -108,6 +115,7 @@ const A = {
   delCustom: el => ask('이 운동을 목록에서 지울까요? 지난 기록은 남아요.', '삭제', () => { S.meta.custom = S.meta.custom.filter(e => e.id !== el.dataset.id); touchMeta(); render(); }),
   done: el => {
     const {w, it, s} = ctx(el); if (!s) return;
+    if (w.planned) return toast('시작을 누른 뒤 세트를 완료할 수 있어요');
     if (!s.done) { if (!w.end) stopRest(true); } else { if (R.rest && R.rest.set === s) stopRest(false); delete s.restS; }
     s.done = !s.done;
     const row = el.closest('.srow');
@@ -151,8 +159,11 @@ const A = {
     else { w.pausedAt = now; pauseRest(true); }
     touchW(w); render();
   },
-  wmenu: () => { const w = cur(); openSheet(`<h3>${w.end ? '기록 편집' : '진행 중인 운동'}</h3><div class="field">날짜<input type="date" id="wDate" value="${esc(w.date)}"></div><div class="row"><button class="btn" data-act="saveAsRt">루틴으로 저장</button><button class="btn danger" data-act="wDiscard">${w.end ? '기록 삭제' : '운동 취소'}</button><button class="btn" data-act="close">닫기</button></div>`); },
+  wmenu: () => { const w = cur();
+    if (w.planned) return openSheet(`<h3>운동 준비</h3><div class="row"><button class="btn" data-act="saveAsRt">루틴으로 저장</button><button class="btn danger" data-act="planDiscard">준비 취소</button><button class="btn" data-act="close">닫기</button></div>`);
+    openSheet(`<h3>${w.end ? '기록 편집' : '진행 중인 운동'}</h3><div class="field">날짜<input type="date" id="wDate" value="${esc(w.date)}"></div><div class="row"><button class="btn" data-act="saveAsRt">루틴으로 저장</button><button class="btn danger" data-act="wDiscard">${w.end ? '기록 삭제' : '운동 취소'}</button><button class="btn" data-act="close">닫기</button></div>`); },
   saveAsRt: () => { const w = cur(); if (!w.items.length) return toast('운동이 없어요'); P.rDraft = {id: uid('r-'), name: title(w), items: w.items.map(it => { const ns = it.sets.filter(s => s.t === 'N'); return {ex: it.ex, sets: ns.length || it.sets.length || 3, r: ns[0]?.r ?? '', w: ''}; })}; routineEditor(); },
+  planDiscard: () => ask('준비한 운동 목록을 지울까요?', '지우기', () => { const w = cur(); tombstone(w.id); render(); }),
   wDiscard: () => ask('이 운동 기록을 삭제할까요?', '삭제', () => { const w = cur(); if (!w.end) stopRest(false); tombstone(w.id); V.editId = null; render(); }),
   finish: () => {
     const w = cur();

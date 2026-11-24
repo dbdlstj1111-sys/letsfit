@@ -9,7 +9,7 @@ IndexedDB 이름 `letsfit`, 버전 1.
 | `kv` | 문자열 | 앱 내부 값 (`lastBackupAt`) — 백업에 포함하지 않음 |
 
 ## workout
-`id`(w-…), `date`(YYYY-MM-DD), `start`, `end`(ms, 진행 중이면 null), `pausedAt`, `pausedMs`, `intensity`(1~5), `note`, `items[]`, `updatedAt`.
+`id`(w-…), `date`(YYYY-MM-DD), `start`(준비 중이면 null), `end`(ms, 진행 중이면 null), `planned`(true면 시작 전 준비 화면), `pausedAt`, `pausedMs`, `intensity`(1~5), `note`, `items[]`, `updatedAt`.
 삭제는 `{id, deleted: true, updatedAt}` 형태로 남긴다(나중에 동기화용).
 
 - item: `ex`(운동 id), `rest`(초 또는 null), `sets[]`

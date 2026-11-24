@@ -26,13 +26,13 @@ function exCard(w, it, ii) {
   const rows = it.sets.map((s, si) => {
     const lab = s.t === 'W' ? 'W' : s.t === 'D' ? '↳D' : ++n;
     const p = prev[si];
-    return `<div class="sg srow t-${esc(s.t)}${s.done ? ' done' : ''}" data-s="${si}">
+    return `<div class="swipe"><div class="sg srow t-${esc(s.t)}${s.done ? ' done' : ''}" data-s="${si}">
       <button class="badge" data-act="setMenu" aria-label="세트 메뉴">${lab}</button>
       <button class="prev" data-act="usePrev">${p ? esc(fmtW(p.w)) + '×' + esc(p.r) : '—'}</button>
       <input class="num" data-f="w" inputmode="decimal" placeholder="${p ? esc(fmtW(p.w)) : 'kg'}" value="${esc(fmtW(s.w))}">
       <input class="num" data-f="r" inputmode="numeric" placeholder="${p ? esc(p.r) : '회'}" value="${esc(s.r)}">
       <button class="rpe${s.rpe ? ' on' : ''}" data-act="rpe">${s.rpe ? esc(s.rpe) : 'RPE'}</button>
-      <button class="chk" data-act="done" aria-label="세트 완료"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></button></div>${R.rest && R.rest.set === s ? '<div class="restline now">휴식 중</div>' : s.restS ? '<div class="restline">휴식 ' + fmtSec(s.restS) + '</div>' : ''}`;
+      <button class="chk" data-act="done" aria-label="세트 완료"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></button></div></div>${R.rest && R.rest.set === s ? '<div class="restline now">휴식 중</div>' : s.restS ? '<div class="restline">휴식 ' + fmtSec(s.restS) + '</div>' : ''}`;
   }).join('');
   const ar = avgRest(it);
   return `<article class="card ex" data-i="${ii}"><header><span class="dot" style="background:${PC[ex.part] || '#999'}"></span><div class="grow"><h3>${esc(ex.name)}</h3><p>${esc(ex.part)} · ${EQ[ex.eq] || ''} · 휴식 ${fmtSec(+it.rest || S.meta.settings.rest)}</p></div><button class="icon" data-act="exMenu" aria-label="운동 메뉴">⋯</button></header>

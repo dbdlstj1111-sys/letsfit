@@ -168,3 +168,14 @@ nav button.on{color:var(--acc)}
 #upd.on{display:flex}
 #upd span{flex:1}
 #upd .btn{min-height:40px;background:var(--acc);color:#fff}
+/* 세트 밀어서 삭제 */
+.swipe{position:relative;border-radius:10px;overflow:hidden}
+.swipe::before{content:"삭제";position:absolute;inset:0;border-radius:10px;background:var(--mute);color:#fff;display:none;align-items:center;justify-content:flex-end;padding-right:18px;font-weight:700;font-size:14px}
+.swipe.on::before{display:flex}
+.swipe.armed::before{background:var(--acc)}
+.swipe .srow{position:relative;background:var(--card);touch-action:pan-y}
+.swipe .srow.done{background:var(--okbg)}
+.srow.snap{transition:transform .18s ease-out}
+#toast.act{pointer-events:auto;display:flex;align-items:center;gap:12px;padding:6px 6px 6px 16px}
+#toast button{min-height:36px;padding:0 12px;border-radius:9px;background:var(--acc);color:#fff;font-weight:700;font-size:14px}
+@media (prefers-reduced-motion:reduce){.srow.snap{transition:none}}

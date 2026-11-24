@@ -6,7 +6,8 @@ import * as store from './storage.js';
 import { S, V, save, hydrate, mark, touchW, touchMeta, flush, active, cur, exById, lastSets, seedSets, wSets, wVol, title, avgRest, elapsed } from './state.js';
 import { R, startRest, stopRest, pauseRest, adjustRest, tick, restoreRest } from './timer.js';
 import { observeFigs } from './charts.js';
-import { openSheet, closeSheet, ask, takeConfirm, toast } from './ui.js';
+import { openSheet, closeSheet, ask, takeConfirm, toast, runToastAction } from './ui.js';
+import { initSwipe } from './swipe.js';
 import { P, openPicker, filterPick, routineEditor } from './sheets.js';
 import { shareBackup, copyBackup, importBackup } from './backup.js';
 import { paintSave } from './views/common.js';
@@ -63,6 +64,16 @@ const lastFilled = (sets, before) => {
   const prev = sets.slice(0, before).reverse().filter(s => !isBlank(s));
   return prev.find(s => s.t !== 'W') || prev[0] || null;
 };
+// 세트 삭제 + 6초간 실행 취소
+function deleteSet({w, it, si, s}) {
+  if (!w || !it || !s) return;
+  if (R.rest && R.rest.set === s) stopRest(false);
+  it.sets.splice(si, 1); touchW(w); render();
+  toast('세트를 삭제했어요', {label: '실행 취소', fn: () => {
+    if (!it.sets.includes(s)) { it.sets.splice(Math.min(si, it.sets.length), 0, s); touchW(w); render(); }
+  }});
+}
+initSwipe(row => deleteSet(ctx(row)));
 const tombstone = id => { S.workouts[id] = {id, deleted: true, updatedAt: Date.now()}; mark(id); };
 function doImport(txt) { const r = importBackup(txt); if (r.ok) render(); toast(r.msg); }
 
@@ -117,7 +128,8 @@ const A = {
   setMenu: el => { menuCtx = ctx(el); const t = menuCtx.s.t; openSheet(`<h3>${menuCtx.si + 1}번째 세트</h3><div class="opts">${[['N', '일반', '본세트'], ['W', '웜업', '통계 제외'], ['D', '드롭', '직전 세트에 이어서']].map(([k, a, b]) => `<button class="opt${t === k ? ' sel' : ''}" data-act="setType" data-t="${k}"><b style="font-size:17px">${a}</b><small>${b}</small></button>`).join('')}</div><div class="row" style="margin-top:12px"><button class="btn" data-act="setDup">아래에 복제</button><button class="btn danger" data-act="setDel">세트 삭제</button><button class="btn" data-act="close">닫기</button></div>`); },
   setType: el => { const {w, s} = menuCtx; s.t = el.dataset.t; touchW(w); closeSheet(); render(); },
   setDup: () => { const {w, it, si, s} = menuCtx; const c = {...s, done: false, rpe: null}; delete c.restS; it.sets.splice(si + 1, 0, c); touchW(w); closeSheet(); render(); },
-  setDel: () => { const {w, it, si, s} = menuCtx; if (R.rest && R.rest.set === s) stopRest(false); it.sets.splice(si, 1); touchW(w); closeSheet(); render(); },
+  setDel: () => { closeSheet(); deleteSet(menuCtx); },
+  toastAct: runToastAction,
   exMenu: el => {
     if (el) menuCtx = ctx(el);
     const r = +menuCtx.it.rest || S.meta.settings.rest; const ar = avgRest(menuCtx.it);

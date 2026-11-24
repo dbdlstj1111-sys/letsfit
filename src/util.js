@@ -1,0 +1,15 @@
+export const $ = s => document.querySelector(s);
+export const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+export const n2 = v => { const x = parseFloat(v); return isNaN(x) ? 0 : x; };
+export const fmtW = v => (v === '' || v == null) ? '' : String(Math.round(n2(v) * 100) / 100);
+export const fmtN = v => Math.round(v).toLocaleString('ko-KR');
+export const e1rm = (w, r) => { w = n2(w); r = n2(r); if (!w || !r) return 0; return r === 1 ? w : w * (1 + Math.min(r, 15) / 30); };
+export const pad = n => String(n).padStart(2, '0');
+export const dkey = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+export const today = () => dkey(new Date());
+export const dlabel = k => { const [y, m, d] = k.split('-').map(Number); const dt = new Date(y, m - 1, d); return m + '월 ' + d + '일 (' + '일월화수목금토'[dt.getDay()] + ')'; };
+export const fmtSec = v => { v = Math.round(+v || 0); return Math.floor(v / 60) + ':' + pad(v % 60); };
+export const clock = ms => { const s = Math.max(0, Math.floor(ms / 1000)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return (h ? h + ':' + pad(m) : m) + ':' + pad(s % 60); };
+export const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+export const fmtBytes = b => b < 1024 ? b + 'B' : b < 1048576 ? (b / 1024).toFixed(1) + 'KB' : (b / 1048576).toFixed(1) + 'MB';
+export const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;

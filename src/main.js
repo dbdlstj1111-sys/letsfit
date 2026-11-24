@@ -1,7 +1,7 @@
 import './style.css';
 import { registerSW } from 'virtual:pwa-register';
 import { THEMES, LV, RPES, REST_OPTS } from './constants.js';
-import { $, esc, n2, fmtSec, fmtN, clock, today, uid } from './util.js';
+import { $, esc, n2, fmtW, fmtSec, fmtN, clock, today, uid } from './util.js';
 import * as store from './storage.js';
 import { S, V, save, hydrate, mark, touchW, touchMeta, flush, active, cur, exById, lastSets, seedSets, wSets, wVol, title, avgRest, elapsed } from './state.js';
 import { R, startRest, stopRest, pauseRest, adjustRest, tick, restoreRest } from './timer.js';
@@ -62,7 +62,7 @@ function toPlan(items) {
     w = {id: uid('w-'), date: today(), start: null, planned: true, end: null, items, intensity: null, note: '', updatedAt: Date.now()};
     S.workouts[w.id] = w; touchW(w);
   }
-  V.editId = null; V.view = 'rec'; render(); window.scrollTo(0, 0);
+  V.editId = null; V.home = false; V.view = 'rec'; render(); window.scrollTo(0, 0);
   return w;
 }
 const routineItems = r => r.items.map(i => ({ex: i.ex, rest: null, sets: seedSets(i.ex, +i.sets || 3, i.r, i.w)}));
@@ -73,6 +73,23 @@ const lastFilled = (sets, before) => {
   const prev = sets.slice(0, before).reverse().filter(s => !isBlank(s));
   return prev.find(s => s.t !== 'W') || prev[0] || null;
 };
+// 세트에 무게·횟수를 적으면 뒤쪽 세트 중 비어 있거나 자동으로 채워진 칸을 같은 값으로 채운다.
+// 완료한 세트, 웜업, 드롭 세트, 직접 적은 칸은 건드리지 않는다.
+function fillFollowing(input, it, si, f) {
+  const src = it.sets[si];
+  if (src.t === 'W') return;
+  const card = input.closest('.ex');
+  for (let j = si + 1; j < it.sets.length; j++) {
+    const s = it.sets[j];
+    if (s.done || s.t !== 'N') continue;
+    const blank = s[f] === '' || s[f] == null;
+    if (!blank && !(s.auto && s.auto[f])) continue;
+    s[f] = src[f];
+    s.auto = Object.assign({}, s.auto, {[f]: src[f] !== ''});
+    const el = card && card.querySelector(`.srow[data-s="${j}"] [data-f="${f}"]`);
+    if (el) el.value = f === 'w' ? fmtW(src[f]) : src[f];
+  }
+}
 // 세트 삭제 + 6초간 실행 취소
 function deleteSet({w, it, si, s}) {
   if (!w || !it || !s) return;
@@ -87,7 +104,14 @@ const tombstone = id => { S.workouts[id] = {id, deleted: true, updatedAt: Date.n
 function doImport(txt) { const r = importBackup(txt); if (r.ok) render(); toast(r.msg); }
 
 const A = {
-  go: el => { V.view = el.dataset.v; closeSheet(); render(); window.scrollTo(0, 0); },
+  go: el => {
+    V.view = el.dataset.v;
+    // 준비 중일 때 하단 '기록'을 누르면 홈(시작 화면)으로. 준비 목록은 남아 있고 홈에서 '이어서'로 돌아간다.
+    if (V.view === 'rec' && !V.editId) { const a = active(); if (a && a.planned) V.home = true; }
+    closeSheet(); render(); window.scrollTo(0, 0);
+  },
+  planHome: () => { V.home = true; render(); window.scrollTo(0, 0); },
+  planResume: () => { V.home = false; render(); window.scrollTo(0, 0); },
   close: closeSheet,
   retry: () => flush(),
   confirmOk: () => { const f = takeConfirm(); closeSheet(); f && f(); },
@@ -220,7 +244,14 @@ $('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeS
 document.addEventListener('click', e => { const el = e.target.closest('[data-act]'); if (!el) return; const f = A[el.dataset.act]; if (f) f(el, e); });
 document.addEventListener('input', e => {
   const t = e.target;
-  if (t.dataset.f) { const {w, s} = ctx(t); if (!s) return; const v = t.value.trim(); s[t.dataset.f] = v === '' ? '' : n2(v); touchW(w); return; }
+  if (t.dataset.f) {
+    const {w, it, si, s} = ctx(t); if (!s) return;
+    const f = t.dataset.f, v = t.value.trim();
+    s[f] = v === '' ? '' : n2(v);
+    if (s.auto) s.auto = {...s.auto, [f]: false}; // 직접 고친 칸은 더 이상 자동으로 바뀌지 않음
+    fillFollowing(t, it, si, f);
+    touchW(w); return;
+  }
   if (t.dataset.rf && P.rDraft) { const it = P.rDraft.items[+t.closest('[data-k]').dataset.k]; it[t.dataset.rf] = t.value.trim() === '' ? '' : n2(t.value); return; }
   if (t.id === 'rName' && P.rDraft) P.rDraft.name = t.value;
   if (t.id === 'wNote') { const w = cur(); if (w) { w.note = t.value; touchW(w); } }

@@ -7,7 +7,8 @@ export const blankMeta = () => ({routines: [], custom: [], settings: {rest: 90},
 export const S = {meta: blankMeta(), workouts: {}};
 
 /** 화면 상태 */
-export const V = {view: 'rec', calM: new Date(), calSel: today(), anEx: null, editId: null, lastBackup: null, storage: null};
+// home: 준비 중인 운동이 있어도 홈(시작 화면)을 보여줄지
+export const V = {view: 'rec', calM: new Date(), calSel: today(), anEx: null, editId: null, home: false, lastBackup: null, storage: null};
 
 export function hydrate(data) {
   const m = Object.assign(blankMeta(), (data && data.meta) || {});

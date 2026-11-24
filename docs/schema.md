@@ -13,7 +13,7 @@ IndexedDB 이름 `letsfit`, 버전 1.
 삭제는 `{id, deleted: true, updatedAt}` 형태로 남긴다(나중에 동기화용).
 
 - item: `ex`(운동 id), `rest`(초 또는 null), `sets[]`
-- set: `t`(N 일반 / W 웜업 / D 드롭), `w`(kg), `r`(회), `rpe`, `done`, `restS`(실제 휴식 초)
+- set: `t`(N 일반 / W 웜업 / D 드롭), `w`(kg), `r`(회), `rpe`, `done`, `restS`(실제 휴식 초), `auto`({w, r}: 앞 세트를 따라 자동으로 채워진 칸, 선택)
 
 ## meta
 `routines[]` (`{id, name, items: [{ex, sets, r, w}]}`), `custom[]` (`{id, name, part, eq}`), `settings.rest`, `settings.theme{acc, mode}`, `updatedAt`.

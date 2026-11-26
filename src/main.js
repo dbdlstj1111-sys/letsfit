@@ -15,7 +15,9 @@ import { vRec, planLoadSheet } from './views/record.js';
 import { vRt } from './views/routines.js';
 import { vCal } from './views/calendar.js';
 import { vAn } from './views/analysis.js';
-import { vSet, storageRows } from './views/settings.js';
+import { vSet, storageRows, wakeStatus } from './views/settings.js';
+import { initWake, syncWake } from './wake.js';
+import { tick321, endBeep } from './sound.js';
 
 /* ---------- 화면 ---------- */
 function applyTheme() {
@@ -37,7 +39,9 @@ function render() {
   paintSave();
   observeFigs();
   if (V.view === 'set') refreshStorage();
+  syncWake(); // 운동 시작·완료 같은 상태 변화에 맞춰 화면 켜짐 유지 갱신
 }
+const paintWake = () => { const el = $('#wakeStat'); if (el) el.innerHTML = wakeStatus(); };
 save.onChange = paintSave;
 
 async function refreshStorage() {
@@ -222,6 +226,8 @@ const A = {
   setRestStep: el => { S.meta.settings.rest = Math.min(900, Math.max(10, S.meta.settings.rest + +el.dataset.d)); touchMeta(); render(); },
   setMode: el => { S.meta.settings.theme = Object.assign({}, S.meta.settings.theme, {mode: el.dataset.k}); touchMeta(); render(); },
   setAcc: el => { S.meta.settings.theme = Object.assign({}, S.meta.settings.theme, {acc: el.dataset.k}); touchMeta(); render(); },
+  setWake: el => { S.meta.settings.wake = +el.dataset.v; touchMeta(); render(); },
+  testSound: () => { [0, 1000, 2000].forEach(t => setTimeout(tick321, t)); setTimeout(endBeep, 3000); },
   setRest: el => { S.meta.settings.rest = +el.dataset.s; touchMeta(); render(); },
   exportFile: async () => {
     const r = await shareBackup();
@@ -313,6 +319,7 @@ async function boot() {
 
   V.lastBackup = (await store.kvGet('lastBackupAt')) || null;
   restoreRest();
+  initWake(paintWake);
   render();
   setInterval(tick, 250);
   store.requestPersist().then(p => { V.storage = Object.assign({}, V.storage, {persisted: p}); });

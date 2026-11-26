@@ -16,7 +16,7 @@ IndexedDB 이름 `letsfit`, 버전 1.
 - set: `t`(N 일반 / W 웜업 / D 드롭), `w`(kg), `r`(회), `rpe`, `done`, `restS`(실제 휴식 초), `auto`({w, r}: 앞 세트를 따라 자동으로 채워진 칸, 선택)
 
 ## meta
-`routines[]` (`{id, name, items: [{ex, sets, r, w}]}`), `custom[]` (`{id, name, part, eq}`), `settings.rest`, `settings.theme{acc, mode}`, `updatedAt`.
+`routines[]` (`{id, name, items: [{ex, sets, r, w}]}`), `custom[]` (`{id, name, part, eq}`), `settings.rest`, `settings.theme{acc, mode}`, `settings.wake`(화면 켜짐 유지 분: 0 끄기, -1 운동 끝까지, 없으면 10), `updatedAt`.
 
 ## 백업 파일
 ```json

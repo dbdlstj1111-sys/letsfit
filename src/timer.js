@@ -2,22 +2,14 @@
 // 앱이 완전히 종료돼도 이어지도록 상태를 localStorage에 둔다.
 import { $, clock } from './util.js';
 import { S, active, cur, elapsed, touchW } from './state.js';
+import { unlockAudio, tick321, endBeep } from './sound.js';
 
 export const R = {rest: null};
 const RK = 'letsfit.rest';
-let ac = null;
 
-document.addEventListener('pointerdown', () => {
-  try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch (e) {}
-}, {passive: true});
-
-function beep() {
-  try {
-    if (!ac) return;
-    [0, .3, .6].forEach(t => { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = 880; o.connect(g); g.connect(ac.destination); const at = ac.currentTime + t; g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(.35, at + .02); g.gain.exponentialRampToValueAtTime(.0001, at + .2); o.start(at); o.stop(at + .22); });
-  } catch (e) {}
-  try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch (e) {}
-}
+// 터치할 때와 앱으로 돌아올 때마다 오디오를 깨워 둔다
+document.addEventListener('pointerdown', unlockAudio, {passive: true});
+document.addEventListener('visibilitychange', () => { if (!document.hidden) unlockAudio(); });
 
 export function saveRest() {
   try {
@@ -79,6 +71,7 @@ export function adjustRest(d) {
     if (r.fired && d > 0) { r.endAt = Date.now(); r.fired = false; $('#rest').classList.remove('over'); }
     r.endAt += d; if (r.endAt <= Date.now() && !r.fired) r.endAt = Date.now();
   }
+  r.cd = null; // 시간을 늘리면 카운트다운을 다시 할 수 있게
   r.total = Math.max(r.total, (r.pausedLeft ?? (r.endAt - Date.now())) / 1000);
   saveRest(); tick();
 }
@@ -87,7 +80,10 @@ export function tick() {
   const r = R.rest;
   if (r) {
     const left = r.pausedLeft != null ? r.pausedLeft : r.endAt - Date.now();
-    if (left <= 0 && !r.fired) { r.fired = true; saveRest(); beep(); $('#rest').classList.add('over'); }
+    // 끝나기 3·2·1초 전 짧은 비프, 끝나면 더 큰 비프
+    const sec = Math.ceil(left / 1000);
+    if (left > 0 && sec <= 3 && !r.pauseStart && r.cd !== sec) { r.cd = sec; tick321(); }
+    if (left <= 0 && !r.fired) { r.fired = true; saveRest(); endBeep(); $('#rest').classList.add('over'); }
     $('#restT').innerHTML = (left > 0 ? clock(left + 999) : '+' + clock(-left)) + '<small>' + (r.pauseStart ? '일시정지' : left > 0 ? '휴식' : '초과 · 다음 세트 시작 시 끝') + '</small>';
     $('#restP').style.width = Math.max(0, Math.min(100, left / (r.total * 1000) * 100)) + '%';
   }
